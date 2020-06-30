@@ -11,8 +11,14 @@ int main()
     std::cout << "Current local time and date = "
               <<  rtc->get_localtime_from_RTC() << std::endl; // текущая дата в понятной для человека форме
 
+
     rtc->set_time_in_RTC(1593421771);
+
     rtc->set_time_in_RTC_string("2004-02-29 16:21:42");
+
+    rtc->get_command_sync_sys_hw();
+
+    rtc->get_command_hardware_time();
 
 
     // Проверка, доступен ли командный процессор

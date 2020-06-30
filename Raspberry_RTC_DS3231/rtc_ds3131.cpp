@@ -18,15 +18,34 @@ char* RTC_DS3131::get_localtime_from_RTC()
     return ctime (&rawtime);
 }
 
-int8_t RTC_DS3131::get_command_sync_sys_hw(){
+int8_t RTC_DS3131::get_command_hardware_time()
+{
+    std::string cmd ="sudo hwclock -r";
+    if(system_send_command(cmd) < 0){
+        std::cout << "Problem: NO get hardware time\n";
+        return ERR_NO_HARDWARE_TIME;
+    }
+    return  0;
+}
+
+int8_t RTC_DS3131::system_send_command(std::string m_cmd){
+    char *cstr = new char[m_cmd.length() + 1];
+    strcpy(cstr, m_cmd.c_str());
+    if (system(cstr)!=0){ return  -1; }
+    delete[] cstr;
+    return  0;
+}
+
+
+int8_t RTC_DS3131::get_command_sync_sys_hw()
+{
     std::string cmd ="sudo hwclock --hctosys";
-    char *cstr = new char[cmd.length() + 1];
-    strcpy(cstr, cmd.c_str());
-    if (system(cstr)!=0){
+
+    if(system_send_command(cmd) < 0){
         std::cout << "Problem: NO sync system time with hardware time\n";
         return ERR_NO_SYNC_TIME;
     }
-    delete[] cstr;
+
     return 0;
 }
 
@@ -45,16 +64,16 @@ int8_t RTC_DS3131::set_time_in_RTC(time_t t)
     //    для отладки
     //        std::cout << "cmdcmd = " << cmd << std::endl;
 
-    int8_t res_date = get_command_date(cmd);
-    if(res_date !=0){ return res_date; }
+    //установили системное время
+    //sudo date --set "2004-02-29 16:21:42"
+    if(system_send_command(cmd) < 0){
+        std::cout << "Problem: NO set time in system\n";
+        return ERR_NO_SET_TIME_SYS;
+    }
 
     //записали время в RTC
     int8_t res_hwclock = get_command_hwclock();
     if(res_hwclock !=0){ return res_hwclock; }
-
-    //синхронизировали системное время с аппаратным (он же RTC)
-    int8_t res_sync = get_command_sync_sys_hw();
-    if(res_sync !=0){ return res_sync; }
 
     //    time_t now = time(0);
     //    tm *ltm = localtime(&now);
@@ -77,7 +96,7 @@ int8_t RTC_DS3131::set_time_in_RTC(time_t t)
 
 int8_t RTC_DS3131::set_time_in_RTC_string(std::string str)
 {
-    //пример ввода даты
+    //пример ввода даты: "2004-02-29 16:21:42"
     //sudo date --set "2004-02-29 16:21:42"
 
     std::string str2 ="\"" + str + "\"";
@@ -89,29 +108,16 @@ int8_t RTC_DS3131::set_time_in_RTC_string(std::string str)
     //    // do stuff
     //    delete [] cstr;
 
-    int8_t res_date = get_command_date(cmd);
-    if(res_date !=0){ return res_date; }
-
-    //записали время в RTC
-    int8_t res_hwclock = get_command_hwclock();
-    if(res_hwclock !=0){ return res_hwclock; }
-
-    //синхронизировали системное время с аппаратным (он же RTC)
-    int8_t res_sync = get_command_sync_sys_hw();
-    if(res_sync !=0){ return res_sync; }
-
-    return 0;
-}
-
-int8_t RTC_DS3131::get_command_date(std::string& _cmd)
-{
-    char *cstr = new char[_cmd.length() + 1];
-    strcpy(cstr, _cmd.c_str());
-    if (system(cstr)!=0){
+     //установили системное время
+     //sudo date --set "2004-02-29 16:21:42"
+     if(system_send_command(cmd) < 0){
         std::cout << "Problem: NO set time in system\n";
         return ERR_NO_SET_TIME_SYS;
-    }
-    delete[] cstr;
+     }
+
+    //записали время в RTC (аппаратное время берется с RTC)
+    int8_t res_hwclock = get_command_hwclock();
+    if(res_hwclock !=0){ return res_hwclock; }
 
     return 0;
 }
@@ -119,13 +125,11 @@ int8_t RTC_DS3131::get_command_date(std::string& _cmd)
 int8_t RTC_DS3131::get_command_hwclock()
 {
     std::string cmd = "sudo hwclock -w";
-    char *cstr = new char[cmd.length() + 1];
-    strcpy(cstr, cmd.c_str());
-    if (system(cstr)!=0){
+
+    if(system_send_command(cmd) < 0){
         std::cout << "Problem: NO set time in hardware\n";
         return ERR_NO_SET_TIME_HARD;
     }
-    delete[] cstr;
 
     return 0;
 }
